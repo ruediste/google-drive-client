@@ -1,0 +1,10 @@
+target/
+.classpath
+.project
+.settings/
+.vscode/
+*.class
+*.jar
+*.war
+*.ear
+!/pom.xml

@@ -28,10 +28,48 @@ The data model is centered around a hierarchical structure of `Directory` and `F
 - **File**: Represents individual files, tracking a `locallyDeleted` flag.
 
 Both `Directory` and `File` maintain two states:
+
 - **ORS (Observed Remote State)**: Represents the state as seen on the server.
 - **LS (Local State)**: Represents the state as it exists locally (0..1 relationship, as it might not be fully synced or loaded).
 
 The `DirectoryState` and `FileState` capture specific attributes for their respective entities, such as `name`, `modifiedAt` for files, and others.
+
+## Cli and Daemon Process
+
+The application is distributed as a single executable JAR file that serves as both the Command Line Interface (CLI) tool and the background daemon process.
+
+### Architecture
+
+When you mount a Google Drive folder, the CLI tool forks a new background process (the daemon) using the same JAR. This daemon is responsible for:
+
+- Maintaining the FUSE file system mount.
+- Synchronizing the Observed Remote State (ORS) and Local State (LS).
+- Handling background uploads and downloads.
+
+### Inter-Process Communication (IPC)
+
+The CLI tool and the background daemon communicate using **Unix Domain Sockets (UDS)**.
+When the daemon starts, it creates a local socket file (e.g., in `~/.config/google-drive-client/daemon.sock`). The CLI tool connects to this socket to send commands (like querying status or stopping the daemon) and receive responses. UDS is chosen because it provides secure, fast, and reliable local communication without the overhead or security concerns of exposing a local TCP port.
+
+### CLI Commands
+
+The CLI provides several commands to manage the daemon and the FUSE mount. Below is an overview of the available commands:
+
+```text
+Usage: java -jar google-drive-client.jar [COMMAND]
+
+Commands:
+  mount <path>    Mounts Google Drive to the specified local <path> and starts the background daemon.
+                  Example: java -jar google-drive-client.jar mount ~/GoogleDrive
+
+  stop            Unmounts the file system and gracefully stops the associated daemon.
+                  Example: java -jar google-drive-client.jar stop
+
+  status          Queries the daemon for the current synchronization status and health of the mount at.
+                  Example: java -jar google-drive-client.jar status
+
+  help            Displays this help message.
+```
 
 ## Technologies
 
