@@ -35,9 +35,11 @@ public class DataStore {
         s = new MVStore.Builder().fileName(App.dataPath().resolve("client.db").toAbsolutePath().toString()).compress()
                 .autoCommitDisabled().open();
 
-        Kryo kryo = new Kryo();
+        kryo = new Kryo();
+        kryo.register(java.util.HashMap.class);
 
         datas = register(Data.class);
+        kryo.register(Data.RootDirectory.class);
 
         directories = register(Directory.class);
         kryo.register(DirectoryState.class);
@@ -100,7 +102,7 @@ public class DataStore {
 
         @Override
         public void write(WriteBuffer buff, Object obj) {
-            var output = new Output();
+            var output = new Output(4096, -1);
             kryo.writeObject(output, obj);
             buff.putInt(output.position());
             updateAverageSize(output.position());

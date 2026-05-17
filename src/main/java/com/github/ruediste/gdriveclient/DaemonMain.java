@@ -7,6 +7,7 @@ import com.github.ruediste.gdriveclient.model.DirectoryState;
 public class DaemonMain {
 
     private final long startTime = System.currentTimeMillis();
+    private GDriveFuse fuse;
 
     public void start(String mountPath) throws Exception {
         var dataStore = new DataStore();
@@ -24,6 +25,9 @@ public class DaemonMain {
         root.directoryId = dirId;
         dataStore.data.roots.put(dataStore.nextId(), root);
         dataStore.saveData();
+
+        fuse = new GDriveFuse();
+        fuse.mount(java.nio.file.Paths.get(mountPath), true, false);
 
         new Thread(this::socketListener, "socket-listener").start();
     }
@@ -48,6 +52,9 @@ public class DaemonMain {
                             response = "Uptime: " + ((System.currentTimeMillis() - startTime) / 1000.) + "s";
                         } else if ("stop".equals(command.trim())) {
                             System.out.println("Stopping daemon");
+                            if (fuse != null) {
+                                fuse.umount();
+                            }
                             System.exit(0);
                         }
                         client.write(java.nio.ByteBuffer.wrap(response.getBytes()));
